@@ -1,0 +1,91 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Application user",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "password": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Scraped product offer",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "original_price": { "type": "number" },
+        "discount_price": { "type": "number" },
+        "discount_percent": { "type": "integer" },
+        "original_link": { "type": "string" },
+        "affiliate_link": { "type": "string" },
+        "image_url": { "type": "string" },
+        "rating": { "type": "number" },
+        "sales_count": { "type": "integer" },
+        "platform": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "original_link", "discount_price"]
+    },
+    "Copy": {
+      "title": "Copy",
+      "description": "AI generated copy for a product",
+      "type": "object",
+      "properties": {
+        "product_id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "variation": { "type": "integer" }
+      },
+      "required": ["product_id", "content"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Application configuration setting",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string" },
+        "value": { "type": "string" }
+      },
+      "required": ["key", "value"]
+    },
+    "Analytics": {
+      "title": "Analytics",
+      "description": "Product performance tracking",
+      "type": "object",
+      "properties": {
+        "product_id": { "type": "string" },
+        "clicks": { "type": "integer" },
+        "conversions": { "type": "integer" },
+        "date": { "type": "string", "format": "date" }
+      },
+      "required": ["product_id", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product offers"
+    },
+    "/products/{productId}/copies/{copyId}": {
+      "schema": "Copy",
+      "description": "AI copies for products"
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "App settings"
+    },
+    "/analytics/{analyticsId}": {
+      "schema": "Analytics",
+      "description": "Product analytics"
+    }
+  }
+}

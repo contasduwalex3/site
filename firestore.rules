@@ -1,0 +1,150 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Fields:
+//   - email: string (required)
+//   - role: string (required, enum: ['admin', 'user'])
+//
+// Collection: products
+// Fields:
+//   - name: string (required)
+//   - description: string (optional)
+//   - original_price: number (required)
+//   - discount_price: number (required)
+//   - discount_percent: number (optional)
+//   - original_link: string (required)
+//   - affiliate_link: string (optional)
+//   - image_url: string (optional)
+//   - rating: number (optional)
+//   - sales_count: number (optional)
+//   - platform: string (optional)
+//   - created_at: timestamp (required)
+//
+// Collection: products/{productId}/copies
+// Fields:
+//   - product_id: string (required)
+//   - title: string (optional)
+//   - content: string (required)
+//   - variation: number (required)
+//
+// Collection: settings
+// Fields:
+//   - key: string (required)
+//   - value: string (required)
+//
+// Collection: analytics
+// Fields:
+//   - product_id: string (required)
+//   - clicks: number (required)
+//   - conversions: number (required)
+//   - date: string (required, YYYY-MM-DD)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "wnet4g@gmail.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['email', 'role']) &&
+             data.email is string &&
+             data.role in ['admin', 'user'];
+    }
+
+    function isValidProduct(data) {
+      return hasRequiredFields(['name', 'original_price', 'discount_price', 'original_link', 'created_at']) &&
+             data.name is string && data.name.size() < 500 &&
+             data.original_price is number &&
+             data.discount_price is number &&
+             data.original_link is string &&
+             data.created_at is timestamp;
+    }
+
+    function isValidCopy(data) {
+      return hasRequiredFields(['product_id', 'content', 'variation']) &&
+             data.product_id is string &&
+             data.content is string &&
+             data.variation is number;
+    }
+
+    function isValidSetting(data) {
+      return hasRequiredFields(['key', 'value']) &&
+             data.key is string &&
+             data.value is string;
+    }
+
+    function isValidAnalytics(data) {
+      return hasRequiredFields(['product_id', 'clicks', 'conversions', 'date']) &&
+             data.product_id is string &&
+             data.clicks is number &&
+             data.conversions is number &&
+             data.date is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (request.auth.uid == userId || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (request.auth.uid == userId || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if true; // Publicly readable for redirect links
+      allow create, update, delete: if isAdmin() && isValidProduct(request.resource.data);
+      
+      match /copies/{copyId} {
+        allow read: if true;
+        allow create, update, delete: if isAdmin() && isValidCopy(request.resource.data);
+      }
+    }
+
+    match /settings/{settingId} {
+      allow read: if true; // Some settings might be needed by the frontend even if not logged in (though rare here)
+      allow write: if isAdmin() && isValidSetting(request.resource.data);
+    }
+
+    match /analytics/{analyticsId} {
+      allow read: if isAdmin();
+      allow create, update: if true; // Allow public to increment clicks
+      allow delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

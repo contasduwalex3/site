@@ -1,0 +1,8 @@
+{
+  "name": "AFILIAUTO PRO",
+  "description": "Sistema de automação total para marketing de afiliados com integração WhatsApp, Telegram e IA.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
